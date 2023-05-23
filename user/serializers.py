@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework import serializers
 from django.utils.translation import gettext as _
-
+from test_app.models import Tag
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -13,7 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return get_user_model().objects.create_user(**validated_data)
 
-class AuthTokenSeializer(serializers.Serializer):
+class AuthTokenSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(
         style={'input_type':'password'},
@@ -21,5 +21,16 @@ class AuthTokenSeializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        email = attrs.get('request')
+        email = attrs.get('email')
         password = attrs.get('password')
+        user = authenticate(
+            request=self.context.get('request'),
+            username = email,
+            password=password,
+        )
+        if not user:
+            msg = _('authenticate is not possible with the credintiality')
+            raise serializers.ValidationError(msg, code='authorization')
+
+        attrs['user'] = user
+        return attrs
